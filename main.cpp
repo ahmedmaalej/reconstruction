@@ -19,10 +19,8 @@ int main(int argc, char** argv)
 	std::istringstream(std::string(argv[1])) >> resolution_x;
 	int resolution_y;
 	std::istringstream(std::string(argv[2])) >> resolution_y;
-
-	std::string file_name = std::string(argv[3]);
 	int algorithm_num;
-	std::istringstream(std::string(argv[4])) >> algorithm_num;
+	std::istringstream(std::string(argv[3])) >> algorithm_num;
 	PointColorCalculatorAlgorithm algorithm;
 	switch (algorithm_num)
 	{
@@ -34,7 +32,7 @@ int main(int argc, char** argv)
 			break;
 	}
 	PointColorCalculator calc(points, algorithm);
-	calc.to_ppm((file_name+".ppm").c_str(),resolution_x,resolution_y);
+	calc.to_geomview(resolution_x,resolution_y);
 	return 0;
 }
 

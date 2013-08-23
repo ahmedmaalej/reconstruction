@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <CGAL/bounding_box.h>
+#include <CGAL/IO/Geomview_stream.h>
 
 enum PointColorCalculatorAlgorithm
 {
@@ -15,6 +16,7 @@ class PointColorCalculator
 	Arrangement_2 arr;
 	Kernel::Iso_rectangle_2	rect;
 	PointColorCalculatorAlgorithm algorithm;
+	CGAL::Geomview_stream *gv;
 
 	public:
 	PointColorCalculator(std::list<std::pair<Point_2,int> > &points, PointColorCalculatorAlgorithm algorithm)
@@ -23,6 +25,7 @@ class PointColorCalculator
 		Colored_segment	cv[points.size()];
 		int index = 0;
 		std::list<Point_2> points_only;
+		std::list<std::pair<Segment_2,int> > segments;
 		for (std::list<std::pair<Point_2,int> >::iterator it = points.begin(); it != points.end(); it++)
 		{
 			std::list< std::pair<Point_2,int> >::iterator inner_it = it;
@@ -39,12 +42,29 @@ class PointColorCalculator
 				next_point = *inner_it; 
 			}
 			cv[index++] = Colored_segment( Segment_2(current_point.first,next_point.first), current_point.second);
+			segments.push_back(std::pair<Segment_2,int>(Segment_2(current_point.first,next_point.first),current_point.second));
 		}
 
 		rect = CGAL::bounding_box<std::list<Point_2>::iterator>(points_only.begin(),points_only.end());
 		
 		
 		CGAL::insert (arr, &cv[0], &cv[points_only.size()]);
+		Number_type min_x = rect.xmin();
+		Number_type min_y = rect.ymin();
+		Number_type  max_x = rect.xmax();
+		Number_type  max_y = rect.ymax();	
+
+
+		gv = new CGAL::Geomview_stream(CGAL::Bbox_3(CGAL::to_double(min_x),CGAL::to_double(min_y),0,CGAL::to_double(max_x),CGAL::to_double(max_y),0));
+		(*gv).set_line_width(4);
+		(*gv).clear();
+		for (std::list<std::pair<Segment_2,int> >::iterator it = segments.begin(); it != segments.end();it++)
+		{
+			static unsigned int color_rgb[3];
+			resolve_int_to_color((*it).second,color_rgb);
+			*gv << CGAL::Color(color_rgb[0],color_rgb[1],color_rgb[2]);
+			*gv << (*it).first;
+		}
 	}	
 
 	int GetColor(Point_2 p)
@@ -110,7 +130,7 @@ class PointColorCalculator
 		return chosen_color;
 	}
 
-	void to_ppm(std::string file_name, int resolution_x, int resolution_y)
+	void to_geomview(int resolution_x, int resolution_y)
 	{
 		int color = -1;
 		Number_type min_x = rect.xmin();
@@ -119,59 +139,59 @@ class PointColorCalculator
 		Number_type  max_y = rect.ymax();	
 
 		std::cout << "min_x,max_x,min_y,max_y: " << min_x << "," << max_x << "," << min_y << "," << max_y << std::endl;
-		Number_type margin = 0;
-		Number_type step_x = (2*margin+max_x-min_x)/resolution_x;
-		Number_type step_y = (2*margin+max_y-min_y)/resolution_y;
+		Number_type step_x = (max_x-min_x)/resolution_x;
+		Number_type step_y = (max_y-min_y)/resolution_y;
 		Point_2 *test_point;
-		std::ofstream outfile;
-		outfile.open(file_name.c_str(),std::ios::binary);
-		outfile <<"P6\n"<<resolution_x<< " "<< resolution_y << "\n" << "255\n";
+		Point_3 *draw_point;
 		int counter = 0;
-		for ( Number_type i =max_y+margin;i > min_y-margin;i-=step_y)
+		for ( Number_type i =min_y;i<=max_y;i+=step_y)
 		{
-			for (Number_type j = min_x-margin; j<max_x+margin;j+=step_x)
+			for (Number_type j = min_x; j<=max_x;j+=step_x)
 			{
 				if (counter++ % 1000 == 0)
 					std::cout << "for point " << i << "," << j << " got color " << (color >= 0 ? color_names[color] : "UNKNOWN") << std::endl;
 
-				test_point = new Point_2(j,i);
+				test_point = new Traits_2::Point_2(j,i);
 				color = GetColor(*test_point);	
-				static unsigned char color_rgb[3];
-				switch(color)
-				{
-					case 0:
-						color_rgb[0] = 255;
-						color_rgb[1] = 0;
-						color_rgb[2] = 0;
-						break;
-					case 1:
-						color_rgb[0] = 0;
-						color_rgb[1] = 255;
-						color_rgb[2] = 0;
-						break;
-					case 2:
-						color_rgb[0] = 205;
-						color_rgb[1] = 201;
-						color_rgb[2] = 201;
-						break;
-					
-					case -1:
-						color_rgb[0] = 100;
-						color_rgb[1] = 100;
-						color_rgb[2] = 100;
-						break;
-					default:
-						color_rgb[0] = 0;	
-						color_rgb[1] = 0;
-						color_rgb[2] = 0;
-			
-				}
-				outfile.write((char*)color_rgb,sizeof(color_rgb));
-				
+				static unsigned int color_rgb[3];
+				resolve_int_to_color(color,color_rgb);
+				if (color_rgb[0]==-1) continue;
 				delete test_point;
+				draw_point = new Traits_2::Point_3(j,i,0);
+				*gv << CGAL::Color(color_rgb[0],color_rgb[1],color_rgb[2]);
+				*gv << *draw_point;
+				delete draw_point;
 			}
 		}
-		outfile.close();
+		std::cout << "Press any key to finish";
+		char ch;
+		std::cin >> ch;
+	}
 
+	void resolve_int_to_color(int color, unsigned int color_rgb[3])
+	{
+		switch(color)
+		{
+			case 0:
+				color_rgb[0] = 255;
+				color_rgb[1] = 0;
+				color_rgb[2] = 0;
+				break;
+			case 1:
+				color_rgb[0] = 0;
+				color_rgb[1] = 255;
+				color_rgb[2] = 0;
+				break;
+			case 2:
+				color_rgb[0] = 0;
+				color_rgb[1] = 0;
+				color_rgb[2] = 255;
+				break;
+			
+			default:
+				color_rgb[0]=-1;
+				color_rgb[1]=-1;
+				color_rgb[2]=-1;
+		}
 	}
 };

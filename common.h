@@ -19,6 +19,7 @@ typedef CGAL::Arr_segment_traits_2<Kernel>	Traits_2;
 typedef CGAL::Arr_consolidated_curve_data_traits_2<Traits_2,int> Data_traits;
 typedef Traits_2::Curve_2 Segment_2;
 typedef Traits_2::Point_2	Point_2;
+typedef Traits_2::Point_3	Point_3;
 typedef Data_traits::Curve_2	Colored_segment;
 typedef CGAL::Arrangement_2<Data_traits>	Arrangement_2;
 typedef CGAL::Arr_naive_point_location<Arrangement_2> Naive_pl;
