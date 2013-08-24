@@ -60,7 +60,7 @@ class PointColorCalculator
 		(*gv).clear();
 		for (std::list<std::pair<Segment_2,int> >::iterator it = segments.begin(); it != segments.end();it++)
 		{
-			static unsigned int color_rgb[3];
+			static int color_rgb[3];
 			resolve_int_to_color((*it).second,color_rgb);
 			*gv << CGAL::Color(color_rgb[0],color_rgb[1],color_rgb[2]);
 			*gv << (*it).first;
@@ -153,7 +153,7 @@ class PointColorCalculator
 
 				test_point = new Traits_2::Point_2(j,i);
 				color = GetColor(*test_point);	
-				static unsigned int color_rgb[3];
+				static int color_rgb[3];
 				resolve_int_to_color(color,color_rgb);
 				if (color_rgb[0]==-1) continue;
 				delete test_point;
@@ -163,12 +163,14 @@ class PointColorCalculator
 				delete draw_point;
 			}
 		}
-		std::cout << "Press any key to finish";
-		char ch;
-		std::cin >> ch;
+		char ch = 'a';
+		while (ch != 'y') { 
+			std::cout << "Press y to finish";
+			std::cin >> ch;
+		}
 	}
 
-	void resolve_int_to_color(int color, unsigned int color_rgb[3])
+	void resolve_int_to_color(int color, int color_rgb[3])
 	{
 		switch(color)
 		{
@@ -188,6 +190,24 @@ class PointColorCalculator
 				color_rgb[2] = 255;
 				break;
 			
+			case 3:
+				color_rgb[0] = 255;
+				color_rgb[1] = 255;
+				color_rgb[2] = 0;
+				break;
+			
+			case 4:
+				color_rgb[0] = 255;
+				color_rgb[1] = 105;
+				color_rgb[2] = 180;
+				break;
+
+			case 5:
+				color_rgb[0] = -1;
+				color_rgb[1] = -1;
+				color_rgb[2] = -1;
+				break;
+
 			default:
 				color_rgb[0]=-1;
 				color_rgb[1]=-1;

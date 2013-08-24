@@ -24,8 +24,8 @@ typedef Data_traits::Curve_2	Colored_segment;
 typedef CGAL::Arrangement_2<Data_traits>	Arrangement_2;
 typedef CGAL::Arr_naive_point_location<Arrangement_2> Naive_pl;
 
-const int MAX_COLOR = 3;
-std::string color_names[3] = { "RED", "BLUE", "YELLOW" };
+const int MAX_COLOR = 6;
+std::string color_names[MAX_COLOR] = { "0", "1", "2", "3", "4", "5"};
 
 #include <list>
 #include <utility>
