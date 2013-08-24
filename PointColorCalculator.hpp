@@ -3,6 +3,12 @@
 #include <fstream>
 #include <CGAL/bounding_box.h>
 #include <CGAL/IO/Geomview_stream.h>
+#include <QApplication>
+#include <CGAL/Qt/GraphicsViewInput.h>
+#include <CGAL/Qt/PointsGraphicsItem.h>
+#include <CGAL/Qt/SegmentsGraphicsItem.h>
+#include <QGraphicsView>
+#include "ColoredPointsGraphicsItem.hpp"
 
 enum PointColorCalculatorAlgorithm
 {
@@ -17,6 +23,7 @@ class PointColorCalculator
 	Kernel::Iso_rectangle_2	rect;
 	PointColorCalculatorAlgorithm algorithm;
 	CGAL::Geomview_stream *gv;
+	std::list<std::pair<Segment_2,int> > segments;
 
 	public:
 	PointColorCalculator(std::list<std::pair<Point_2,int> > &points, PointColorCalculatorAlgorithm algorithm)
@@ -25,7 +32,6 @@ class PointColorCalculator
 		Colored_segment	cv[points.size()];
 		int index = 0;
 		std::list<Point_2> points_only;
-		std::list<std::pair<Segment_2,int> > segments;
 		for (std::list<std::pair<Point_2,int> >::iterator it = points.begin(); it != points.end(); it++)
 		{
 			std::list< std::pair<Point_2,int> >::iterator inner_it = it;
@@ -49,22 +55,6 @@ class PointColorCalculator
 		
 		
 		CGAL::insert (arr, &cv[0], &cv[points_only.size()]);
-		Number_type min_x = rect.xmin();
-		Number_type min_y = rect.ymin();
-		Number_type  max_x = rect.xmax();
-		Number_type  max_y = rect.ymax();	
-
-
-		gv = new CGAL::Geomview_stream(CGAL::Bbox_3(CGAL::to_double(min_x),CGAL::to_double(min_y),0,CGAL::to_double(max_x),CGAL::to_double(max_y),0));
-		(*gv).set_line_width(4);
-		(*gv).clear();
-		for (std::list<std::pair<Segment_2,int> >::iterator it = segments.begin(); it != segments.end();it++)
-		{
-			static int color_rgb[3];
-			resolve_int_to_color((*it).second,color_rgb);
-			*gv << CGAL::Color(color_rgb[0],color_rgb[1],color_rgb[2]);
-			*gv << (*it).first;
-		}
 	}	
 
 	int GetColor(Point_2 p)
@@ -137,7 +127,17 @@ class PointColorCalculator
 		Number_type min_y = rect.ymin();
 		Number_type  max_x = rect.xmax();
 		Number_type  max_y = rect.ymax();	
-
+		
+		gv = new CGAL::Geomview_stream(CGAL::Bbox_3(CGAL::to_double(min_x),CGAL::to_double(min_y),0,CGAL::to_double(max_x),CGAL::to_double(max_y),0));
+		(*gv).set_line_width(4);
+		(*gv).clear();
+		for (std::list<std::pair<Segment_2,int> >::iterator it = segments.begin(); it != segments.end();it++)
+		{
+			static int color_rgb[3];
+			resolve_int_to_color((*it).second,color_rgb);
+			*gv << CGAL::Color(color_rgb[0],color_rgb[1],color_rgb[2]);
+			*gv << (*it).first;
+		}
 		std::cout << "min_x,max_x,min_y,max_y: " << min_x << "," << max_x << "," << min_y << "," << max_y << std::endl;
 		Number_type step_x = (max_x-min_x)/resolution_x;
 		Number_type step_y = (max_y-min_y)/resolution_y;
@@ -168,6 +168,72 @@ class PointColorCalculator
 			std::cout << "Press y to finish";
 			std::cin >> ch;
 		}
+	}
+
+	int to_qt(int resolution_x, int resolution_y)
+	{
+		QPen pen(Qt::black, 2, Qt::SolidLine);
+		int color = -1;
+		Number_type min_x = rect.xmin();
+		Number_type min_y = rect.ymin();
+		Number_type  max_x = rect.xmax();
+		Number_type  max_y = rect.ymax();	
+		
+		std::cout << min_x<<std::endl;
+		std::cout << min_y<<std::endl;
+		std::cout << max_x<<std::endl;
+		std::cout << max_y<<std::endl;
+		QPointF q_topLeft(CGAL::to_double(min_x)*resolution_x,CGAL::to_double(max_y)*resolution_y);
+		QPointF q_bottomRight(CGAL::to_double(max_x)*resolution_x,CGAL::to_double(min_y)*resolution_y);
+		QRectF q_rect(q_topLeft,q_bottomRight);
+		
+		int argc = 1;
+		char* argv[] = {"test"};
+		QApplication app(argc,argv);
+
+		QGraphicsScene scene(q_rect);
+		QGraphicsView view(&scene);
+
+		for (std::list<std::pair<Segment_2,int> >::iterator it = segments.begin(); it != segments.end();it++)
+		{
+			static int color_rgb[3];
+			resolve_int_to_color((*it).second,color_rgb);
+			QPointF source(CGAL::to_double((*it).first.source().x()), CGAL::to_double((*it).first.source().y()));
+			QPointF target(CGAL::to_double((*it).first.target().x()), CGAL::to_double((*it).first.target().y()));
+			QLineF line(resolution_x*source,resolution_y*target);
+			std::cout << (*it).first.source() << std::endl;
+			std::cout << (*it).first.target() << std::endl;
+			scene.addLine(line,QPen(QColor(color_rgb[0],color_rgb[1],color_rgb[2])));
+		}
+		std::cout << "min_x,max_x,min_y,max_y: " << min_x << "," << max_x << "," << min_y << "," << max_y << std::endl;
+		Number_type step_x = (max_x-min_x)/resolution_x;
+		Number_type step_y = (max_y-min_y)/resolution_y;
+		Point_2 *test_point;
+		int counter = 0;
+		std::list<std::pair<QPointF,QColor> > q_points;
+		for ( Number_type i =min_y;i<=max_y;i+=step_y)
+		{
+			for (Number_type j = min_x; j<=max_x;j+=step_x)
+			{
+				if (counter++ % 1000 == 0)
+					std::cout << "for point " << i << "," << j << " got color " << (color >= 0 ? color_names[color] : "UNKNOWN") << std::endl;
+
+				test_point = new Traits_2::Point_2(j,i);
+				color = GetColor(*test_point);	
+				static int color_rgb[3];
+				resolve_int_to_color(color,color_rgb);
+				if (color_rgb[0]==-1) continue;
+				QColor color(color_rgb[0],color_rgb[1],color_rgb[2]);
+				q_points.push_back(std::pair<QPointF,QColor>(QPointF(CGAL::to_double(test_point->x()*resolution_x),CGAL::to_double(test_point->y()*resolution_y)),QColor(color_rgb[0],color_rgb[1],color_rgb[2])));
+				delete test_point;
+			}
+		}
+		ColoredPointsGraphicsItem q_pointsItem(&q_points);
+		scene.addItem(&q_pointsItem);
+		view.show();
+		return app.exec();
+
+
 	}
 
 	void resolve_int_to_color(int color, int color_rgb[3])

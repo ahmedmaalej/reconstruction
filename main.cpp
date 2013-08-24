@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 			break;
 	}
 	PointColorCalculator calc(points, algorithm);
-	calc.to_geomview(resolution_x,resolution_y);
+	calc.to_qt(resolution_x,resolution_y);
 	return 0;
 }
 
