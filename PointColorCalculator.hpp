@@ -179,9 +179,8 @@ class PointColorCalculator
 		Number_type  max_x = rect.xmax();
 		Number_type  max_y = rect.ymax();	
 		
-		float margin = 20;
-		QPointF q_topLeft(-margin,-margin);
-		QPointF q_bottomRight(resolution_x+margin,resolution_y+margin);
+		QPointF q_topLeft(CGAL::to_double(min_x),CGAL::to_double(min_y));
+		QPointF q_bottomRight(CGAL::to_double(max_x),CGAL::to_double(max_y));
 		QRectF q_rect(q_topLeft,q_bottomRight);
 		
 		int argc = 1;
@@ -191,6 +190,7 @@ class PointColorCalculator
 
 		QGraphicsScene scene(q_rect);
 		QGraphicsView view(&scene);
+		view.scale(resolution_x/q_rect.width(),resolution_y/q_rect.height());
 
 		Number_type step_x = (max_x-min_x)/resolution_x;
 		Number_type step_y = (max_y-min_y)/resolution_y;
@@ -201,8 +201,8 @@ class PointColorCalculator
 		{
 			static int color_rgb[3];
 			resolve_int_to_color((*it).second,color_rgb);
-			QPointF source(CGAL::to_double(((*it).first.source().x()-min_x)/step_x), CGAL::to_double(((*it).first.source().y()-min_y)/step_y));
-			QPointF target(CGAL::to_double(((*it).first.target().x()-min_x)/step_x), CGAL::to_double(((*it).first.target().y()-min_y)/step_y));
+			QPointF source(CGAL::to_double((*it).first.source().x()), CGAL::to_double(((*it).first.source().y())));
+			QPointF target(CGAL::to_double((*it).first.target().x()), CGAL::to_double(((*it).first.target().y())));
 			QLineF line(source,target);
 			scene.addLine(line,QPen(QColor(color_rgb[0],color_rgb[1],color_rgb[2])));
 		}
@@ -223,11 +223,11 @@ class PointColorCalculator
 				resolve_int_to_color(color,color_rgb);
 				if (color_rgb[0]==-1) continue;
 				QColor color(color_rgb[0],color_rgb[1],color_rgb[2]);
-				q_points.push_back(std::pair<QPointF,QColor>(QPointF(CGAL::to_double((test_point->x()-min_x)/step_x),CGAL::to_double((test_point->y()-min_y)/step_y)),QColor(color_rgb[0],color_rgb[1],color_rgb[2])));
+				q_points.push_back(std::pair<QPointF,QColor>(QPointF(CGAL::to_double(test_point->x()),CGAL::to_double(test_point->y())),QColor(color_rgb[0],color_rgb[1],color_rgb[2])));
 				delete test_point;
 			}
 		}
-		ColoredPointsGraphicsItem q_pointsItem(&q_points);
+		ColoredPointsGraphicsItem q_pointsItem(&q_points, &rect);
 		scene.addItem(&q_pointsItem);
 		view.show();
 		QString q_file_name = file_name.c_str();
