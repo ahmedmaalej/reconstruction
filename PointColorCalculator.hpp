@@ -60,8 +60,8 @@ class PointColorCalculator
 
 	int GetColor(Point_2 p)
 	{
-		Naive_pl	naive_pl(arr);
-		CGAL::Object obj = naive_pl.locate(p);
+		point_location_query_type	point_locator(arr);
+		CGAL::Object obj = point_locator.locate(p);
 		Arrangement_2::Face_const_handle f;
 		Arrangement_2::Halfedge_const_handle he;
 		Colored_segment *s;
@@ -145,7 +145,7 @@ class PointColorCalculator
 		Point_2 *test_point;
 		Point_3 *draw_point;
 		int counter = 0;
-		for ( Number_type i =min_y;i<=max_y;i+=step_y)
+		for ( Number_type i = min_y;i<=max_y;i+=step_y)
 		{
 			for (Number_type j = min_x; j<=max_x;j+=step_x)
 			{
@@ -197,6 +197,7 @@ class PointColorCalculator
 		std::cout << "step_x: " << step_x << std::endl;
 		std::cout << "step_y: " << step_y << std::endl;
 
+		std::list<std::pair<QLineF,QColor> > q_lines;
 		for (std::list<std::pair<Segment_2,int> >::iterator it = segments.begin(); it != segments.end();it++)
 		{
 			static int color_rgb[3];
@@ -204,13 +205,14 @@ class PointColorCalculator
 			QPointF source(CGAL::to_double((*it).first.source().x()), CGAL::to_double(((*it).first.source().y())));
 			QPointF target(CGAL::to_double((*it).first.target().x()), CGAL::to_double(((*it).first.target().y())));
 			QLineF line(source,target);
-			scene.addLine(line,QPen(QColor(color_rgb[0],color_rgb[1],color_rgb[2])));
+//			scene.addLine(line,QPen(QColor(color_rgb[0],color_rgb[1],color_rgb[2])));
+			q_lines.push_back(std::pair<QLineF,QColor>(QLineF(source,target),QColor(color_rgb[0],color_rgb[1],color_rgb[2])));
 		}
 		std::cout << "min_x,max_x,min_y,max_y: " << min_x << "," << max_x << "," << min_y << "," << max_y << std::endl;
 		Point_2 *test_point;
 		int counter = 0;
 		std::list<std::pair<QPointF,QColor> > q_points;
-		for ( Number_type i =min_y;i<=max_y;i+=step_y)
+		for ( Number_type i = min_y;i<=max_y;i+=step_y)
 		{
 			for (Number_type j = min_x; j<=max_x;j+=step_x)
 			{
@@ -227,7 +229,7 @@ class PointColorCalculator
 				delete test_point;
 			}
 		}
-		ColoredPointsGraphicsItem q_pointsItem(&q_points, &rect);
+		ColoredPointsGraphicsItem q_pointsItem(&q_lines, &q_points, &rect);
 		scene.addItem(&q_pointsItem);
 		view.show();
 		QString q_file_name = file_name.c_str();
